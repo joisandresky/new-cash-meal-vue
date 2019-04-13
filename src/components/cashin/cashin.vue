@@ -2,7 +2,7 @@
   <div class="row">
     <div class="col-md-12">
       <h2 class="page-header">
-        <i class="fa fa-arrow-circle-up"></i>&nbsp Cash In
+        <i class="fa fa-arrow-circle-up"></i>&nbsp; Cash In
       </h2>
       <button class="btn btn-info mt-2" @click="openForm">Add CashIn</button>
       <hr class="my-4">
@@ -12,21 +12,19 @@
             <tr>
               <th>Trx ID</th>
               <th>Amount</th>
+              <th>Amount Per Employee</th>
               <th>Description</th>
-              <th>Employee</th>
-              <th>Create at</th>
-              <th>Stampless Approval</th>
+              <th>Created at</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>trx01</td>
-              <td>200000</td>
-              <td>Makan mie ayam</td>
-              <td>MNurul</td>
-              <td>2019-03-16</td>
-              <td>Need Approval</td>
+            <tr v-for="cashIn in cashIns" :key="cashIn.trx_id">
+              <td>{{ cashIn.trx_id }}</td>
+              <td>{{ cashIn.trx_amount }}</td>
+              <td>{{ cashIn.trx_employee_amount }}</td>
+              <td>{{ cashIn.trx_description }}</td>
+              <td>{{ cashIn.createdAt }}</td>
               <td>
                 <button class="btn btn-info" @click="viewCashin">
                   <i class="fa fa-eye" aria-hidden="true"></i>
@@ -124,12 +122,33 @@
 <script>
 export default {
   name: "cashin",
+  data() {
+    return {
+      cashIns: []
+    };
+  },
+  mounted() {
+    this.getCashIn();
+  },
   methods: {
     openForm() {
       this.$modal.show("add-cashin");
     },
     viewCashin() {
       this.$modal.show("view-cashin");
+    },
+    getCashIn() {
+      fetch("http://localhost:8000/api/cashIns")
+        .then(response => response.json())
+        .then(response => {
+          console.log("cashIns data", response);
+          if (response && response.cashIns) {
+            this.cashIns = response.cashIns;
+          }
+        })
+        .catch(err => {
+          console.log("err", err);
+        });
     }
   }
 };
