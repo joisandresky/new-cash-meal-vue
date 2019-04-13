@@ -4,8 +4,10 @@ import Vue from 'vue'
 import App from './App'
 import router from './router'
 import VModal from 'vue-js-modal'
+import VueBootstrapTypeahead from 'vue-bootstrap-typeahead';
 
-Vue.use(VModal)
+Vue.use(VModal);
+Vue.component('vue-bootstrap-typeahead', VueBootstrapTypeahead)
 Vue.config.productionTip = false
 
 
