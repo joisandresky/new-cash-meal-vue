@@ -2,7 +2,7 @@
   <div class="row">
     <div class="col-md-12">
       <h2 class="page-header">
-        <i class="fa fa-arrow-circle-down"></i>&nbsp Cash Out
+        <i class="fa fa-arrow-circle-down"></i>&nbsp; Cash Out
       </h2>
       <button class="btn btn-info mt-2" @click="openForm">Add CashOut</button>
       <hr class="my-4">
@@ -14,19 +14,19 @@
               <th>Amount</th>
               <th>Description</th>
               <th>Employee</th>
-              <th>Create at</th>
-              <th>Stampless Approval</th>
+              <th>Image</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>trx01</td>
-              <td>200000</td>
-              <td>Makan mie ayam</td>
-              <td>MNurul</td>
-              <td>2019-03-16</td>
-              <td>Need Approval</td>
+            <tr v-for="cashOut in cashOuts" :key="cashOut.trx_id">
+              <td>{{ cashOut.trx_id }}</td>
+              <td>{{ cashOut.trx_amount }}</td>
+              <td>{{ cashOut.trx_description }}</td>
+              <td>{{ cashOut.trx_employee }}</td>
+              <td>
+                <img v-bind:src="cashOut.trx_image" alt>
+              </td>
               <td>
                 <button class="btn btn-info" @click="viewCashout">
                   <i class="fa fa-eye" aria-hidden="true"></i>
@@ -46,33 +46,43 @@
           <div class="card">
             <div class="card-body">
               <blockquote class="blockquote mb-0">
-                <form>
-                  <div class="form-group">
-                    <label for="trxid">TRX-Id</label>
-                    <input type="text" class="form-control" id>
-                  </div>
-                  <div class="form-group">
-                    <label for="amount">Amount</label>
-                    <input type="text" class="form-control" id>
-                  </div>
-                  <div class="form-group">
-                    <label for="description">Description</label>
-                    <textarea class="form-control" id rows="3"></textarea>
-                  </div>
-                  <div class="form-group">
-                    <label for="employee">Employee</label>
-                    <input type="text" class="form-control" id>
-                  </div>
-                  <div class="form-group">
-                    <label for="create_at">Create at</label>
-                    <input type="text" class="form-control" id>
-                  </div>
-                  <div class="form-group">
-                    <label for="stample">Stample Approvel</label>
-                    <input type="text" class="form-control" id>
-                  </div>
-                  <button type="submit" class="btn btn-primary">Submit</button>
-                </form>
+                <div class="form-group">
+                  <label for="amount">Amount</label>
+                  <input type="text" v-model="trx_amount" class="form-control" id>
+                </div>
+                <div class="form-group">
+                  <label for="description">Description</label>
+                  <textarea class="form-control" v-model="trx_description" id rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="employee">Employee</label>
+                  <vue-bootstrap-typeahead
+                    :data="employees"
+                    v-model="trx_employee"
+                    size="lg"
+                    :serializer="s => s.employee_name"
+                    placeholder="Type an employees..."
+                    @hit="selectedEmployee = $event"
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="bukti_pembayaran">Payment Bill</label>
+                  <picture-input
+                    ref="pictureInput"
+                    width="300"
+                    height="300"
+                    margin="16"
+                    accept="image/jpeg, image/png"
+                    size="10"
+                    button-class="btn btn-primary"
+                    :custom-strings="{
+                      upload: '<h1>Bummer!</h1>',
+                      drag: 'Drag a 😺 Image'
+                    }"
+                    @change="onChange"
+                  ></picture-input>
+                </div>
+                <button type="button" @click="onSave" class="btn btn-primary">Submit</button>
               </blockquote>
             </div>
           </div>
@@ -122,15 +132,107 @@
 </template>
 
 <script>
+import PictureInput from "vue-picture-input";
+
 export default {
   name: "cashout",
+  data() {
+    return {
+      image: null,
+      trx_amount: 0,
+      trx_description: "",
+      trx_employee: null,
+      employees: [],
+      selectedEmployee: null,
+      cashOuts: []
+    };
+  },
+  components: {
+    PictureInput
+  },
+  mounted() {
+    this.getCashOuts();
+  },
   methods: {
     openForm() {
       this.$modal.show("add-cashout");
     },
     viewCashout() {
       this.$modal.show("view-cashout");
+    },
+    onChange(image) {
+      if (this.$refs.pictureInput.file) {
+        this.image = this.$refs.pictureInput.file;
+      } else {
+        console.log("Old browser. No support for Filereader API");
+      }
+    },
+    async getEmployees(query) {
+      try {
+        let res = await fetch(
+          "http://localhost:8000/api/employees/search?value=" + query
+        );
+        let employees = await res.json();
+        console.log("employeesss", employees);
+        this.employees = employees;
+      } catch (err) {
+        console.log("err", err);
+      }
+    },
+    getCashOuts() {
+      fetch("http://localhost:8000/api/cashOuts")
+        .then(response => response.json())
+        .then(response => {
+          console.log("cashOuts data", response);
+          if (response && response.cashOuts) {
+            this.cashOuts = response.cashOuts;
+          }
+        })
+        .catch(err => {
+          console.log("err", err);
+        });
+    },
+    onSave() {
+      let fd = new FormData();
+      fd.append("trx_amount", this.trx_amount);
+      fd.append("trx_description", this.trx_desctiption);
+      fd.append("trx_employee", this.selectedEmployee.employee_id);
+      fd.append("image", this.image);
+      console.log(this.image);
+      fetch("http://localhost:8000/api/cashOuts", {
+        method: "POST",
+        body: fd,
+        headers: {
+          // "Content-Type": "multipart/form-data"
+        }
+      })
+        .then(res => res.json())
+        .then(res => {
+          if (res && res.success) {
+            alert(res.message);
+            this.$modal.hide("add-cashout");
+            this.getCashOuts();
+            this.resetForm();
+          } else {
+            alert(res.message ? res.message : "An Unknown Error Occured");
+          }
+        })
+        .catch(err => {
+          console.log("err", err);
+        });
+    },
+    resetForm() {
+      this.employees = [];
+      this.trx_amount = 0;
+      this.trx_description = "";
+      this.trx_employee = null;
+      this.selectedEmployee = null;
     }
+  },
+  watch: {
+    trx_employee: _.debounce(function(query) {
+      this.getEmployees(query);
+    }, 500)
   }
 };
 </script>
